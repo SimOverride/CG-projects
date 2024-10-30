@@ -306,11 +306,56 @@ void Transparency::renderWithDepthPeeling() {
     // hint7: if it is to difficult for you, just use a predefined MAX_LAYER_NUM to end looping
     // write your code here
     // ------------------------------------------------------------------------
-    
     // for (int layer = 1; layer < MAX_LAYER_NUM; ++layer) {
     //        // 2.1 peeling pass
     //        // 2.2 blending pass
     // }
+    GLuint samples;
+    int layer = 0;
+    do
+    {
+        glBeginQuery(GL_SAMPLES_PASSED, _queryId);
+        // peeling pass
+        _fbos[layer % 2]->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        _depthPeelingShader->use();
+
+        _depthPeelingShader->setUniformMat4("projection", projection);
+        _depthPeelingShader->setUniformMat4("view", view);
+        _depthPeelingShader->setUniformMat4("model", _knot->transform.getLocalMatrix());
+
+        _depthPeelingShader->setUniformVec3("directionalLight.direction", _light->transform.getFront());
+        _depthPeelingShader->setUniformFloat("directionalLight.intensity", _light->intensity);
+        _depthPeelingShader->setUniformVec3("directionalLight.color", _light->color);
+
+        _depthPeelingShader->setUniformVec3("material.albedo", _knotMaterial->albedo);
+        _depthPeelingShader->setUniformFloat("material.ka", _knotMaterial->ka);
+        _depthPeelingShader->setUniformVec3("material.kd", _knotMaterial->kd);
+        _depthPeelingShader->setUniformFloat("material.transparent", _knotMaterial->transparent);
+
+        _depthTextures[layer % 2]->bind(0);
+
+        _depthPeelingShader->setUniformInt("windowExtent.width", _windowWidth);
+        _depthPeelingShader->setUniformInt("windowExtent.height", _windowHeight);
+
+        _knot->draw();
+        // blending pass
+        _colorBlendFbo->bind();
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        _depthPeelingBlendShader->use();
+
+        _depthPeelingBlendShader->setUniformInt("windowExtent.width", _windowWidth);
+        _depthPeelingBlendShader->setUniformInt("windowExtent.height", _windowHeight);
+
+        _colorBlendTexture->bind(0);
+
+        _fullscreenQuad->draw();
+        layer++;
+        glEndQuery(GL_SAMPLES_PASSED);
+        glGetQueryObjectuiv(_queryId, GL_QUERY_RESULT, &samples);
+    } while (samples != 0);
     // ------------------------------------------------------------------------
 
     // 3. final pass: blend the peeling result with the background color
