@@ -306,15 +306,13 @@ void Transparency::renderWithDepthPeeling() {
     // hint7: if it is to difficult for you, just use a predefined MAX_LAYER_NUM to end looping
     // write your code here
     // ------------------------------------------------------------------------
-    // for (int layer = 1; layer < MAX_LAYER_NUM; ++layer) {
-    //        // 2.1 peeling pass
-    //        // 2.2 blending pass
-    // }
-    GLuint samples;
-    int layer = 0;
-    do
-    {
+    int MAX_LAYER_NUM = 5;
+    for (int layer = 0; layer < MAX_LAYER_NUM; layer++) {
+        GLuint samples;
         glBeginQuery(GL_SAMPLES_PASSED, _queryId);
+        if (layer == 0) {
+
+        }
         // peeling pass
         _fbos[layer % 2]->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -334,7 +332,7 @@ void Transparency::renderWithDepthPeeling() {
         _depthPeelingShader->setUniformVec3("material.kd", _knotMaterial->kd);
         _depthPeelingShader->setUniformFloat("material.transparent", _knotMaterial->transparent);
 
-        _depthTextures[layer % 2]->bind(0);
+        _depthTextures[(layer + 1) % 2]->bind(0);
 
         _depthPeelingShader->setUniformInt("windowExtent.width", _windowWidth);
         _depthPeelingShader->setUniformInt("windowExtent.height", _windowHeight);
@@ -349,13 +347,14 @@ void Transparency::renderWithDepthPeeling() {
         _depthPeelingBlendShader->setUniformInt("windowExtent.width", _windowWidth);
         _depthPeelingBlendShader->setUniformInt("windowExtent.height", _windowHeight);
 
-        _colorBlendTexture->bind(0);
-
+        _colorTextures[layer % 2]->bind(0);
         _fullscreenQuad->draw();
         layer++;
         glEndQuery(GL_SAMPLES_PASSED);
         glGetQueryObjectuiv(_queryId, GL_QUERY_RESULT, &samples);
-    } while (samples != 0);
+        if (samples <= 0)
+            break;
+    }
     // ------------------------------------------------------------------------
 
     // 3. final pass: blend the peeling result with the background color
