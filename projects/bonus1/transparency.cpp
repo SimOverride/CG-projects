@@ -267,6 +267,30 @@ void Transparency::renderWithAlphaBlending() {
     // ------------------------------------------------------------------------
 }
 
+void saveFramebufferToImage(Framebuffer* framebuffer, int width, int height, const std::string& colorFile, const std::string& depthFile) {
+    framebuffer->bind();
+
+    // 读取颜色缓冲
+    std::vector<unsigned char> colorData(width * height * 4); // RGBA
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, colorData.data());
+
+    // 读取深度缓冲
+    std::vector<float> depthData(width * height);
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depthData.data());
+
+    // 保存颜色图像
+    stbi_write_png(colorFile.c_str(), width, height, 4, colorData.data(), width * 4);
+
+    // 处理并保存深度图像
+    std::vector<unsigned char> depthImage(width * height);
+    for (int i = 0; i < width * height; ++i) {
+        depthImage[i] = static_cast<unsigned char>(depthData[i] * 255); // 归一化到0-255
+    }
+    stbi_write_png(depthFile.c_str(), width, height, 1, depthImage.data(), width); // 单通道深度图
+
+    framebuffer->unbind();
+}
+
 void Transparency::renderWithDepthPeeling() {
     const glm::mat4 projection = _camera->getProjectionMatrix();
     const glm::mat4 view = _camera->getViewMatrix();
@@ -295,6 +319,7 @@ void Transparency::renderWithDepthPeeling() {
     _depthPeelingInitShader->setUniformFloat("material.transparent", _knotMaterial->transparent);
 
     _knot->draw();
+    // saveFramebufferToImage(_colorBlendFbo.get(), _windowWidth, _windowHeight, "color_layer_.png", "depth_layer_.png");
 
     // 2. TODO: depth peeling and blending
     // hint1: this stage can be divided into iterative 2 pass: peeling pass and blending pass
@@ -306,15 +331,12 @@ void Transparency::renderWithDepthPeeling() {
     // hint7: if it is to difficult for you, just use a predefined MAX_LAYER_NUM to end looping
     // write your code here
     // ------------------------------------------------------------------------
-    int MAX_LAYER_NUM = 5;
+    int MAX_LAYER_NUM = 1;
     for (int layer = 0; layer < MAX_LAYER_NUM; layer++) {
-        GLuint samples;
-        glBeginQuery(GL_SAMPLES_PASSED, _queryId);
-        if (layer == 0) {
-
-        }
         // peeling pass
-        _fbos[layer % 2]->bind();
+        _fbos[(layer + 1) % 2]->bind();
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         _depthPeelingShader->use();
@@ -332,28 +354,35 @@ void Transparency::renderWithDepthPeeling() {
         _depthPeelingShader->setUniformVec3("material.kd", _knotMaterial->kd);
         _depthPeelingShader->setUniformFloat("material.transparent", _knotMaterial->transparent);
 
-        _depthTextures[(layer + 1) % 2]->bind(0);
+        _depthTextures[layer % 2]->bind(0);
 
         _depthPeelingShader->setUniformInt("windowExtent.width", _windowWidth);
         _depthPeelingShader->setUniformInt("windowExtent.height", _windowHeight);
 
+        glBeginQuery(GL_SAMPLES_PASSED, _queryId);
         _knot->draw();
+        glEndQuery(GL_SAMPLES_PASSED);
+        GLuint samples;
+        glGetQueryObjectuiv(_queryId, GL_QUERY_RESULT, &samples);
+        if (samples <= 0)
+            break;
+        // saveFramebufferToImage(_fbos[(layer + 1) % 2].get(), _windowWidth, _windowHeight, "color_layer_" + std::to_string(layer) + ".png", "depth_layer_" + std::to_string(layer) + ".png");
         // blending pass
         _colorBlendFbo->bind();
-        glClear(GL_COLOR_BUFFER_BIT);
 
         _depthPeelingBlendShader->use();
 
         _depthPeelingBlendShader->setUniformInt("windowExtent.width", _windowWidth);
         _depthPeelingBlendShader->setUniformInt("windowExtent.height", _windowHeight);
 
-        _colorTextures[layer % 2]->bind(0);
+        _colorTextures[(layer + 1) % 2]->bind(0);
+        
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        // 1 - au = 1 - at + atad - ad = (1 - at)(1 - ad)
+        glBlendFuncSeparate(GL_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
         _fullscreenQuad->draw();
-        layer++;
-        glEndQuery(GL_SAMPLES_PASSED);
-        glGetQueryObjectuiv(_queryId, GL_QUERY_RESULT, &samples);
-        if (samples <= 0)
-            break;
+        glDisable(GL_BLEND);
     }
     // ------------------------------------------------------------------------
 
