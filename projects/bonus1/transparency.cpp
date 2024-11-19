@@ -239,8 +239,7 @@ void Transparency::renderWithAlphaBlending() {
     // write your code here
     // ------------------------------------------------------------------------
     glDepthMask(GL_TRUE);
-    glDepthFunc(GL_LEQUAL);
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     // ------------------------------------------------------------------------
 
     _knot->draw();
@@ -250,6 +249,7 @@ void Transparency::renderWithAlphaBlending() {
     // write your code here
     // ------------------------------------------------------------------------
     glDepthMask(GL_FALSE);
+    glDepthFunc(GL_LEQUAL);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -267,7 +267,7 @@ void Transparency::renderWithAlphaBlending() {
     // ------------------------------------------------------------------------
 }
 
-void saveFramebufferToImage(Framebuffer* framebuffer, int width, int height, const std::string& colorFile, const std::string& depthFile) {
+static void saveFramebufferToImage(Framebuffer* framebuffer, int width, int height, const std::string& colorFile, const std::string& depthFile) {
     framebuffer->bind();
 
     // ¶ÁÈ¡ÑÕÉ«»º³å
@@ -319,7 +319,7 @@ void Transparency::renderWithDepthPeeling() {
     _depthPeelingInitShader->setUniformFloat("material.transparent", _knotMaterial->transparent);
 
     _knot->draw();
-    // saveFramebufferToImage(_colorBlendFbo.get(), _windowWidth, _windowHeight, "color_layer_.png", "depth_layer_.png");
+    // saveFramebufferToImage(_colorBlendFbo.get(), _windowWidth, _windowHeight, "color_blend_.png", "depth_blend_.png");
 
     // 2. TODO: depth peeling and blending
     // hint1: this stage can be divided into iterative 2 pass: peeling pass and blending pass
@@ -331,12 +331,12 @@ void Transparency::renderWithDepthPeeling() {
     // hint7: if it is to difficult for you, just use a predefined MAX_LAYER_NUM to end looping
     // write your code here
     // ------------------------------------------------------------------------
-    int MAX_LAYER_NUM = 1;
+    int MAX_LAYER_NUM = 10;
     for (int layer = 0; layer < MAX_LAYER_NUM; layer++) {
         // peeling pass
         _fbos[(layer + 1) % 2]->bind();
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         _depthPeelingShader->use();
@@ -382,6 +382,8 @@ void Transparency::renderWithDepthPeeling() {
         // 1 - au = 1 - at + atad - ad = (1 - at)(1 - ad)
         glBlendFuncSeparate(GL_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
         _fullscreenQuad->draw();
+        glDepthMask(GL_TRUE);
+        // saveFramebufferToImage(_colorBlendFbo.get(), _windowWidth, _windowHeight, "color_blend_" + std::to_string(layer) + ".png", "depth_blend_" + std::to_string(layer) + ".png");
         glDisable(GL_BLEND);
     }
     // ------------------------------------------------------------------------
