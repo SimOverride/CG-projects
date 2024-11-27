@@ -54,6 +54,30 @@ InstancedRendering::InstancedRendering(const Options& options) : Application(opt
     // write your code here
     // ---------------------------------------------------------
     // glXXX(_instanceBuffer); ...
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, _amount * sizeof(glm::mat4), &_modelMatrices[0], GL_STATIC_DRAW);
+
+    unsigned int VAO = _asternoid->getVao();
+    glBindVertexArray(VAO);
+    // ¶¥µãÊôÐÔ
+    GLsizei vec4Size = sizeof(glm::vec4);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
+
+    glBindVertexArray(0);
     // ---------------------------------------------------------
 
     // init imGUI
@@ -201,9 +225,8 @@ void InstancedRendering::renderFrame() {
 
         // TODO: draw the asternoids by the instance rendering method
         // write your code here
-        // ---------------------------------------------------------
-        // ...
-        // glDraw...(...);
+        glBindVertexArray(_asternoid->getVao());
+        glDrawElementsInstanced(GL_TRIANGLES, _asternoid->getIndices().size(), GL_UNSIGNED_INT, 0, _amount);
         // ---------------------------------------------------------
 
         break;
