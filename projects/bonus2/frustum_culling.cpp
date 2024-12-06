@@ -264,9 +264,30 @@ void FrustumCulling::renderFrame() {
         // TODO: use the transform feedback to perform GPU frustum culling
         // write your code here
         // ------------------------------------------------------------------
-        // _frustumCullingShader->use();
+        _frustumCullingShader->use();
+        _frustumCullingShader->setUniformVec3("boundingBox.min", _asternoid->getBoundingBox().min);
+        _frustumCullingShader->setUniformVec3("boundingBox.max", _asternoid->getBoundingBox().max);
+        for (int i = 0; i < 6; i++) {
+            _frustumCullingShader->setUniformVec3("frustum.planes[" + std::to_string(i) + "].normal", frustum.planes[i].normal);
+            _frustumCullingShader->setUniformFloat("frustum.planes[" + std::to_string(i) + "].signedDistance", frustum.planes[i].signedDistance);
+        }
+        glEnable(GL_RASTERIZER_DISCARD);
+        glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, _transformFeedback);
+        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, _transformFeedbackResultBuffer);
+        
+        glBeginTransformFeedback(GL_POINTS);
+        glBindVertexArray(_instancedAsternoids->getBoundingBoxVao());
+        glDrawArraysInstanced(GL_POINTS, 0, 1, _amount);
+        glBindVertexArray(0);
+        glEndTransformFeedback();
+        
+        glFlush();
+        glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, _transformFeedbackResultBuffer);
+        glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(int) * _amount, _visibles.data());
+        
+        glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
+        glDisable(GL_RASTERIZER_DISCARD);
         // ------------------------------------------------------------------
-
         break;
     }
 

@@ -45,7 +45,7 @@ private:
 
     std::unique_ptr<Model> _asternoid;
     std::vector<glm::mat4> _modelMatrices;
-    int _amount = 10000;
+    int _amount = 200000;
     int _drawAsternoidCount = 0;
 
     std::unique_ptr<InstancedModel> _instancedAsternoids;
@@ -69,7 +69,7 @@ private:
 
     bool _showBoundingBox = false;
 
-    enum Method _method = Method::CPU;
+    enum Method _method = Method::GPU;
 
     // GPU frustum resources
     GLenum _transformFeedback = {};

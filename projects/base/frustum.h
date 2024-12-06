@@ -21,6 +21,33 @@ public:
         // Note: this is for Bonus project 'Frustum Culling'
         // write your code here
         // ------------------------------------------------------------
+        glm::vec3 vertices[8] = {
+            glm::vec3(aabb.min.x, aabb.min.y, aabb.min.z),
+            glm::vec3(aabb.min.x, aabb.min.y, aabb.max.z),
+            glm::vec3(aabb.min.x, aabb.max.y, aabb.min.z),
+            glm::vec3(aabb.min.x, aabb.max.y, aabb.max.z),
+            glm::vec3(aabb.max.x, aabb.min.y, aabb.min.z),
+            glm::vec3(aabb.max.x, aabb.min.y, aabb.max.z),
+            glm::vec3(aabb.max.x, aabb.max.y, aabb.min.z),
+            glm::vec3(aabb.max.x, aabb.max.y, aabb.max.z),
+        };
+
+        glm::vec3 min = glm::vec3(FLT_MAX);
+        glm::vec3 max = glm::vec3(-FLT_MAX);
+
+        for (const auto& vertex : vertices) {
+            glm::vec3 transformedVertex = glm::vec3(modelMatrix * glm::vec4(vertex, 1.0f));
+            min = glm::min(min, transformedVertex);
+            max = glm::max(max, transformedVertex);
+        }
+        glm::vec3 center = (min + max) / 2.0f;
+        glm::vec3 extends = max - center;
+
+        for (Plane plane : planes) {
+            float r = extends[0] * abs(plane.normal[0]) + extends[1] * abs(plane.normal[1]) + extends[2] * abs(plane.normal[2]);
+            if (-r > plane.getSignedDistanceToPoint(center))
+                return false;
+        }
         return true;
         // ------------------------------------------------------------
     }

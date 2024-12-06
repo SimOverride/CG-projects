@@ -18,7 +18,16 @@ Frustum PerspectiveCamera::getFrustum() const {
     // Note: this is for Bonus project 'Frustum Culling'
     // write your code here
     // ----------------------------------------------------------------------
-    // ...
+    const float halfVSide = zfar * tanf(fovy * .5f);
+    const float halfHSide = halfVSide * aspect;
+    const glm::vec3 frontMultFar = zfar * transform.getFront();
+
+    frustum.planes[Frustum::NearFace] = { transform.position + znear * transform.getFront(), transform.getFront() };
+    frustum.planes[Frustum::FarFace] = { transform.position + frontMultFar, -transform.getFront() };
+    frustum.planes[Frustum::LeftFace] = { transform.position, glm::normalize(glm::cross(frontMultFar - transform.getRight() * halfHSide, transform.getUp())) };
+    frustum.planes[Frustum::RightFace] = { transform.position, glm::normalize(glm::cross(transform.getUp(), frontMultFar + transform.getRight() * halfHSide)) };
+    frustum.planes[Frustum::BottomFace] = { transform.position, glm::normalize(glm::cross(transform.getRight(), frontMultFar - transform.getUp() * halfVSide)) };
+    frustum.planes[Frustum::TopFace] = { transform.position, glm::normalize(glm::cross(frontMultFar + transform.getUp() * halfVSide, transform.getRight())) };
     // ----------------------------------------------------------------------
 
     return frustum;

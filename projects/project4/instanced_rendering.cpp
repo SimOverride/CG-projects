@@ -54,13 +54,13 @@ InstancedRendering::InstancedRendering(const Options& options) : Application(opt
     // write your code here
     // ---------------------------------------------------------
     // glXXX(_instanceBuffer); ...
+    unsigned int VAO = _asternoid->getVao();
+    glBindVertexArray(VAO);
     unsigned int buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, _amount * sizeof(glm::mat4), &_modelMatrices[0], GL_STATIC_DRAW);
 
-    unsigned int VAO = _asternoid->getVao();
-    glBindVertexArray(VAO);
     // ∂•µ„ Ù–‘
     GLsizei vec4Size = sizeof(glm::vec4);
     glEnableVertexAttribArray(3);
