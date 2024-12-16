@@ -7,5 +7,8 @@ in vec2 screenTexCoord;
 
 void main() {
     // TODO: extract the bright color with color components greater than 1.0
-    brightColorMap = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    vec3 fragColor = texture(sceneMap, screenTexCoord).rgb;
+    float brightness = dot(fragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0)
+        brightColorMap = vec4(fragColor.rgb, 1.0);
 }

@@ -160,7 +160,11 @@ void TextureMapping::initBlendShader() {
         "uniform sampler2D mapKds[2];\n"
 
         "void main() {\n"
-        "    color = vec4(material.kds[0], 1.0f);\n"
+        "    vec3 lambert = max(dot(normalize(fNormal), normalize(-light.direction)), 0.0) * light.color * light.intensity;"
+        "    vec3 color0 = texture(mapKds[0], fTexCoord).rgb * material.kds[0];"
+        "    vec3 color1 = texture(mapKds[1], fTexCoord).rgb * material.kds[1];"
+        "    vec3 diffuse = mix(color0, color1, material.blend);"
+        "    color = vec4(lambert * diffuse, 1.0f);\n"
         "}\n";
     //----------------------------------------------------------------
 
@@ -202,7 +206,10 @@ void TextureMapping::initCheckerShader() {
         "uniform Material material;\n"
 
         "void main() {\n"
-        "    color = vec4(material.colors[0], 1.0f);\n"
+        "    vec2 scaledCoord = fTexCoord * float(material.repeat);\n"
+        "    int checker = int(mod(floor(scaledCoord.x) + floor(scaledCoord.y), 2.0));\n"
+        "    vec3 checkerColor = checker == 0 ? material.colors[0] : material.colors[1];\n"
+        "    color = vec4(checkerColor, 1.0f);\n"
         "}\n";
     //----------------------------------------------------------------
 
@@ -276,7 +283,10 @@ void TextureMapping::renderFrame() {
         // 4.3 TODO: enable textures and transform textures to gpu
         // write your code here
         //----------------------------------------------------------------
-        // ...
+        _blendShader->setUniformInt("mapKds[0]", 0);
+        _blendMaterial->mapKds[0]->bind(0);
+        _blendShader->setUniformInt("mapKds[1]", 1);
+        _blendMaterial->mapKds[1]->bind(1);
         //----------------------------------------------------------------
 
         break;

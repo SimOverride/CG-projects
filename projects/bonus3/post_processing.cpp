@@ -318,16 +318,41 @@ void PostProcessing::renderScene() {
         _gPosition->bind(0);
         _ssaoShader->setUniformInt("gNormal", 1);
         _gNormal->bind(1);
-        _ssaoShader->setUniformInt("noiseMap", 2);
-        _ssaoNoise->bind(2);
+        _ssaoShader->setUniformInt("gDepth", 2);
+        _gDepth->bind(2);
+        _ssaoShader->setUniformInt("noiseMap", 3);
+        _ssaoNoise->bind(3);
         for (size_t i = 0; i < _sampleVecs.size(); ++i) {
             _ssaoShader->setUniformVec3("sampleVecs[" + std::to_string(i) + "]", _sampleVecs[i]);
         }
 
         _ssaoShader->setUniformInt("screenWidth", _windowWidth);
         _ssaoShader->setUniformInt("screenHeight", _windowHeight);
+        _ssaoShader->setUniformFloat("zNear", ((PerspectiveCamera*)_camera.get())->znear);
+        _ssaoShader->setUniformFloat("zFar", ((PerspectiveCamera*)_camera.get())->zfar);
         _ssaoShader->setUniformMat4("projection", _camera->getProjectionMatrix());
         _screenQuad->draw();
+        //std::vector<float> ssaoData(_windowWidth * _windowHeight);
+        //glReadPixels(0, 0, _windowWidth, _windowHeight, GL_RED, GL_FLOAT, ssaoData.data());
+        //float minDepth = FLT_MAX;
+        //float maxDepth = -FLT_MAX;
+        //for (int i = 0; i < width * height; ++i) {
+        //    float depth = ssaoData[i];
+        //    if (depth < minDepth) minDepth = depth;
+        //    if (depth > maxDepth) maxDepth = depth;
+        //}
+        //std::vector<unsigned char> imageData(width * height);
+        //for (int i = 0; i < width * height; ++i) {
+        //    float depth = ssaoData[i];
+        //    if (maxDepth != minDepth) {
+        //        depth = (depth - minDepth) / (maxDepth - minDepth);
+        //    }
+        //    else {
+        //        depth = 0.5f; // 如果最小值等于最大值，设置为中间值
+        //    }
+        //    imageData[i] = static_cast<unsigned char>(depth * 255.0f);
+        //}
+        //stbi_write_png("ssaoResult3.png", _windowWidth, _windowHeight, 1, imageData.data(), _windowWidth);
 
         _ssaoFBO->unbind();
 
@@ -381,7 +406,9 @@ void PostProcessing::renderScene() {
     _ssaoResult[_currentReadBuffer]->bind(3);
 
     _screenQuad->draw();
-
+    /*std::vector<unsigned char> ssaoData(_windowWidth * _windowHeight * 4);
+    glReadPixels(0, 0, _windowWidth, _windowHeight, GL_RGBA, GL_UNSIGNED_BYTE, ssaoData.data());
+    stbi_write_png("ssaoResult4.png", _windowWidth, _windowHeight, 4, ssaoData.data(), _windowWidth * 4);*/
     glEnable(GL_DEPTH_TEST);
     _lightShader->use();
 

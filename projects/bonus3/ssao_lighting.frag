@@ -26,5 +26,15 @@ void main() {
     float occlusion = texture(ssaoResult, screenTexCoord).x;
 
     // TODO: perform lambert shading
-    fragColor = vec4(normal, 1.0f);
+    vec3 ambient = vec3(0.3 * occlusion);
+    vec3 lighting  = ambient;
+    // Âþ·´Éä
+    vec3 lightDir = normalize(light.position - position);
+    vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * light.color * light.intensity;
+    float dist = length(light.position - position);
+    float attenuation = 1.0 / (light.kc + light.kl * dist + light.kq * dist * dist);
+    diffuse  *= attenuation;
+    lighting += diffuse;
+
+    fragColor = vec4(lighting, 1.0);
 }

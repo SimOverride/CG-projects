@@ -89,7 +89,21 @@ void SkyBox::draw(const glm::mat4& projection, const glm::mat4& view) {
     // TODO:: draw skybox
     // write your code here
     // -----------------------------------------------
-    // ...
+    glDepthFunc(GL_LEQUAL);
+    _shader->use();
+
+    _shader->setUniformMat4("projection", projection);
+    _shader->setUniformMat4("view", glm::mat4(glm::mat3(view)));
+    _shader->setUniformInt("cubemap", 1);
+    glBindVertexArray(_vao);
+    _texture->bind();
+
+    // Bind the VAO and draw the cube
+    //glDepthMask(GL_FALSE);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    //glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
     // -----------------------------------------------
 }
 
